@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Corazón & Flores Amarillas 💛</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌻</text></svg>">
+  
+  <!-- Google Fonts & Font Awesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #050300;
+      font-family: 'Indie Flower', 'Segoe Script', cursive;
+    }
+
+    #webgl-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Glowing Text Animations */
+    .gold-glow-text {
+      background: linear-gradient(135deg, #fff7ad 0%, #ffd700 50%, #ff8c00 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.6));
+      animation: pulseTitle 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseTitle {
+      0% { transform: scale(0.98); filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.5)); }
+      100% { transform: scale(1.03); filter: drop-shadow(0 0 22px rgba(255, 220, 100, 0.8)); }
+    }
+
+    /* Glassmorphism Card Style */
+    .glass-card {
+      background: linear-gradient(145deg, rgba(35, 25, 5, 0.85), rgba(12, 8, 2, 0.92));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 215, 0, 0.35);
+      box-shadow: 0 0 45px rgba(255, 190, 40, 0.25), inset 0 0 15px rgba(255, 215, 0, 0.1);
+    }
+
+    /* Floating UI Button Pulse */
+    .floating-btn {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 20px rgba(255, 200, 50, 0.5), 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    .floating-btn:hover {
+      transform: scale(1.1) rotate(5deg);
+      box-shadow: 0 0 30px rgba(255, 220, 80, 0.8), 0 6px 16px rgba(0,0,0,0.5);
+    }
+
+    /* Falling Petals Canvas */
+    #petals-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Scrollbar Styling for Love Letter */
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(20, 15, 5, 0.5);
+      border-radius: 10px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 215, 0, 0.4);
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body class="text-amber-100 flex flex-col justify-between items-center relative">
+
+  <!-- 3D Canvas Container -->
+  <div id="webgl-container"></div>
+  
+  <!-- 2D Petals Canvas overlay -->
+  <canvas id="petals-canvas"></canvas>
+
+  <!-- Start / Unmute Screen Overlay -->
+  <div id="start-screen" class="fixed inset-0 z-50 flex flex-col justify-center items-center cursor-pointer transition-opacity duration-700 bg-radial from-amber-950/80 via-black/95 to-black">
+    <div class="text-center p-6 rounded-3xl max-w-sm mx-auto">
+      <div class="text-6xl mb-4 animate-bounce">🌻</div>
+      <h1 class="text-3xl font-bold gold-glow-text mb-2">Una sorpresa para ti</h1>
+      <p class="text-amber-200/80 text-lg mb-6 tracking-wide">Toca en cualquier lugar para comenzar</p>
+      <div class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 font-sans text-sm animate-pulse">
+        <i class="fa-solid fa-sparkles"></i> Toca para abrir 💛
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Floating Header Title -->
+  <header class="fixed top-6 left-0 right-0 z-30 text-center pointer-events-none px-4">
+    <h1 class="text-3xl md:text-5xl font-bold gold-glow-text tracking-wide drop-shadow-lg">
+      Feliz Día de las Flores Amarillas 🌻
+    </h1>
+    <p id="shape-indicator" class="text-amber-300/70 text-xs md:text-sm font-sans mt-1 tracking-widest uppercase transition-opacity duration-500">
+      ✦ Formando Corazón de Oro ✦
+    </p>
+  </header>
+
+  <!-- Interactive Control Buttons -->
+  <div class="fixed bottom-6 left-6 z-30 flex items-center gap-3">
+    <!-- Music Toggle Button -->
+    <button id="audio-btn" aria-label="Reproducir o pausar música" class="floating-btn w-14 h-14 rounded-full bg-gradient-to-tr from-amber-600 to-yellow-400 text-slate-950 flex items-center justify-center text-xl font-bold border border-yellow-200">
+      <i id="audio-icon" class="fa-solid fa-music"></i>
+    </button>
+    <!-- Shape Morph Manual Switch Button -->
+    <button id="morph-btn" aria-label="Cambiar forma" class="floating-btn px-4 h-14 rounded-full bg-gradient-to-tr from-amber-700/80 to-amber-500/80 text-amber-100 flex items-center justify-center gap-2 border border-yellow-400/40 backdrop-blur-md font-sans text-xs uppercase tracking-wider">
+      <i class="fa-solid fa-arrows-rotate animate-spin-slow"></i>
+      <span id="morph-btn-text">Transformar</span>
+    </button>
+  </div>
+
+  <!-- Right Side Letter Button -->
+  <div class="fixed bottom-6 right-6 z-30">
+    <button id="letter-btn" aria-label="Leer mensaje de amor" class="floating-btn w-16 h-16 rounded-full bg-gradient-to-tr from-yellow-500 via-amber-400 to-yellow-300 text-slate-950 flex items-center justify-center text-2xl border border-yellow-200">
+      💌
+    </button>
+  </div>
+
+  <!-- Love Letter Modal Overlay -->
+  <div id="letter-overlay" class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-500">
+    <div id="letter-card" class="glass-card max-w-lg w-full max-h-[80vh] rounded-3xl p-6 md:p-8 relative transform translate-y-8 scale-95 transition-all duration-500 flex flex-col">
+      <!-- Close Button -->
+      <button id="close-letter" aria-label="Cerrar carta" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-amber-500/10 hover:bg-amber-500/30 text-amber-300 flex items-center justify-center text-xl transition-colors">
+        ✕
+      </button>
+
+      <!-- Letter Content Header -->
+      <div class="text-center mb-4">
+        <span class="text-4xl">🌻</span>
+        <h2 class="text-2xl md:text-3xl font-bold gold-glow-text mt-1">Para ti 💛</h2>
+      </div>
+
+      <!-- Letter Body Text -->
+      <div class="overflow-y-auto custom-scroll pr-2 text-base md:text-lg leading-relaxed text-amber-100 space-y-4 font-normal">
+        <p>Hay personas que llegan a tu vida y, sin darse cuenta, hacen que muchos de tus días brillen de una manera diferente. Así eres tú para mí.</p>
+        <p>Gracias por cada momento compartido, por las sonrisas inesperadas y por llenar de luz los detalles más simples del día a día.</p>
+        <p>Que este ramo digital de flores amarillas y destellos dorados te recuerde hoy y siempre lo verdaderamente especial e importante que eres.</p>
+        <p class="text-right text-amber-300 font-bold pt-2">¡Feliz día! ✨💛</p>
+      </div>
+
+      <!-- Footer Button -->
+      <div class="mt-6 text-center pt-2 border-t border-amber-500/20">
+        <button id="close-letter-bottom" class="px-6 py-2 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-sans font-semibold text-sm hover:brightness-110 transition-all">
+          Guardar en el corazón 💛
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Custom Romantic Web Audio Synthesizer */
+    class RomanticAudioPlayer {
+      constructor() {
+        this.ctx = null;
+        this.isPlaying = false;
+        this.timer = null;
+        this.notes = [261.63, 329.63, 392.00, 493.88, 523.25, 659.25, 783.99, 987.77]; // C major 7th harmonic series
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioCtx();
+        }
+      }
+
+      start() {
+        this.init();
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+        this.isPlaying = true;
+        this.playMelodyLoop();
+      }
+
+      stop() {
+        this.isPlaying = false;
+        if (this.timer) clearTimeout(this.timer);
+      }
+
+      toggle() {
+        if (this.isPlaying) {
+          this.stop();
+        } else {
+          this.start();
+        }
+        return this.isPlaying;
+      }
+
+      playTone(freq, duration, delay = 0) {
+        if (!this.isPlaying || !this.ctx) return;
+
+        setTimeout(() => {
+          if (!this.isPlaying) return;
+          try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+            // Soft romantic envelope
+            gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.12, this.ctx.currentTime + 0.3);
+            gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration);
+          } catch (e) {
+            console.error(e);
+          }
+        }, delay * 1000);
+      }
+
+      playMelodyLoop() {
+        if (!this.isPlaying) return;
+
+        // Arpeggiated soft sequence
+        const sequence = [
+          { note: 0, time: 0, dur: 2.5 },
+          { note: 2, time: 0.4, dur: 2.0 },
+          { note: 4, time: 0.8, dur: 2.5 },
+          { note: 3, time: 1.4, dur: 2.0 },
+          { note: 5, time: 2.0, dur: 3.0 },
+          { note: 4, time: 2.8, dur: 2.0 },
+          { note: 6, time: 3.5, dur: 3.5 },
+          { note: 1, time: 4.2, dur: 2.5 }
+        ];
+
+        sequence.forEach(s => {
+          this.playTone(this.notes[s.note], s.dur, s.time);
+        });
+
+        this.timer = setTimeout(() => {
+          if (this.isPlaying) this.playMelodyLoop();
+        }, 5200);
+      }
+    }
+
+    const audioPlayer = new RomanticAudioPlayer();
+  </script>
+
+  <script>
+    // Global Constants & State
+    const PARTICLE_COUNT = 4500;
+    let scene, camera, renderer, particleSystem;
+    let heartPositions = new Float32Array(PARTICLE_COUNT * 3);
+    let flowerPositions = new Float32Array(PARTICLE_COUNT * 3);
+    let currentPositions = new Float32Array(PARTICLE_COUNT * 3);
+    let targetPositions;
+    
+    let morphProgress = 0; // 0 = Heart, 1 = Flower
+    let isTargetingFlower = false;
+    let autoMorphTimer = 0;
+    
+    // Mouse Interaction
+    let mouseX = 0, mouseY = 0;
+    let targetRotationX = 0, targetRotationY = 0;
+
+    // Initialization Function
+    function initThreeJS() {
+      const container = document.getElementById('webgl-container');
+
+      // 1. Scene Setup
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x050300, 0.002);
+
+      // 2. Camera Setup
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 110;
+
+      // 3. Renderer Setup
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // 4. Generate Parametric Shapes
+      generateHeartShape();
+      generateFlowerShape();
+
+      // Initialize Current Positions to Heart Shape
+      for (let i = 0; i < PARTICLE_COUNT * 3; i++) {
+        currentPositions[i] = heartPositions[i];
+      }
+      targetPositions = heartPositions;
+
+      // 5. Build Particle Geometry & Material
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(currentPositions, 3));
+
+      // Color Palette Generation (Yellows, Golds, Warm Whites)
+      const colors = new Float32Array(PARTICLE_COUNT * 3);
+      const color1 = new THREE.Color(0xffd700); // Gold
+      const color2 = new THREE.Color(0xffaa00); // Warm Yellow/Amber
+      const color3 = new THREE.Color(0xffffff); // White Sparkle
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const rand = Math.random();
+        let pColor = rand > 0.6 ? color1 : (rand > 0.2 ? color2 : color3);
+        colors[i * 3] = pColor.r;
+        colors[i * 3 + 1] = pColor.g;
+        colors[i * 3 + 2] = pColor.b;
+      }
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      // Particle Texture Canvas Generator
+      const canvas = document.createElement('canvas');
+      canvas.width = 32;
+      canvas.height = 32;
+      const ctx = canvas.getContext('2d');
+      const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+      grad.addColorStop(0.3, 'rgba(255, 220, 100, 0.8)');
+      grad.addColorStop(0.7, 'rgba(255, 180, 0, 0.3)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(16, 16, 16, 0, Math.PI * 2);
+      ctx.fill();
+
+      const particleTexture = new THREE.CanvasTexture(canvas);
+
+      const material = new THREE.PointsMaterial({
+        size: 2.2,
+        vertexColors: true,
+        map: particleTexture,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      particleSystem = new THREE.Points(geometry, material);
+      scene.add(particleSystem);
+
+      // 6. Ambient Galaxy Dust (Background Particles)
+      createStarfield();
+
+      // Window Resize Listener
+      window.addEventListener('resize', onWindowResize);
+
+      // Mouse/Touch Interaction Listeners
+      window.addEventListener('mousemove', onPointerMove);
+      window.addEventListener('touchmove', onTouchMove, { passive: true });
+    }
+
+    // Parametric Heart Generator
+    function generateHeartShape() {
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const t = Math.random() * Math.PI * 2;
+        const u = (Math.random() - 0.5) * Math.PI;
+
+        // Heart parametric equation
+        let x = 16 * Math.pow(Math.sin(t), 3);
+        let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+        let z = u * 12 * Math.sin(t);
+
+        // Add volume & jitter
+        const scale = 2.2;
+        const scatter = 1.8;
+        x = x * scale + (Math.random() - 0.5) * scatter;
+        y = y * scale + (Math.random() - 0.5) * scatter;
+        z = z * scale + (Math.random() - 0.5) * scatter;
+
+        heartPositions[i * 3] = x;
+        heartPositions[i * 3 + 1] = y;
+        heartPositions[i * 3 + 2] = z;
+      }
+    }
+
+    // Parametric Sunflower / Floral Shape Generator
+    function generateFlowerShape() {
+      const petals = 12;
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const rFactor = Math.random();
+        
+        // Multi-petal sunflower equation
+        const petalShape = 1 + 0.55 * Math.sin(petals * theta);
+        const radius = 38 * Math.sqrt(rFactor) * petalShape;
+
+        let x = radius * Math.cos(theta);
+        let y = radius * Math.sin(theta);
+        // Subtle 3D cupping effect for flower bloom
+        let z = -Math.pow(radius / 10, 1.8) + (Math.random() - 0.5) * 3.5;
+
+        // Center disk density boost
+        if (Math.random() > 0.7) {
+          const innerR = Math.random() * 12;
+          x = innerR * Math.cos(theta);
+          y = innerR * Math.sin(theta);
+          z = (Math.random() - 0.5) * 4;
+        }
+
+        flowerPositions[i * 3] = x;
+        flowerPositions[i * 3 + 1] = y;
+        flowerPositions[i * 3 + 2] = z;
+      }
+    }
+
+    // Ambient Starfield
+    function createStarfield() {
+      const starCount = 1200;
+      const starGeo = new THREE.BufferGeometry();
+      const starPos = new Float32Array(starCount * 3);
+
+      for (let i = 0; i < starCount * 3; i += 3) {
+        starPos[i] = (Math.random() - 0.5) * 400;
+        starPos[i + 1] = (Math.random() - 0.5) * 400;
+        starPos[i + 2] = (Math.random() - 0.5) * 400;
+      }
+
+      starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+      const starMat = new THREE.PointsMaterial({
+        color: 0xffea88,
+        size: 0.8,
+        transparent: true,
+        opacity: 0.4
+      });
+
+      const stars = new THREE.Points(starGeo, starMat);
+      scene.add(stars);
+    }
+
+    // Mouse Interaction Handlers
+    function onPointerMove(e) {
+      mouseX = (e.clientX - window.innerWidth / 2) * 0.0008;
+      mouseY = (e.clientY - window.innerHeight / 2) * 0.0008;
+    }
+
+    function onTouchMove(e) {
+      if (e.touches.length > 0) {
+        mouseX = (e.touches[0].clientX - window.innerWidth / 2) * 0.0008;
+        mouseY = (e.touches[0].clientY - window.innerHeight / 2) * 0.0008;
+      }
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // Main Animation Loop
+    function animate(time) {
+      requestAnimationFrame(animate);
+
+      // Particle Position Morphing Interpolation
+      const positions = particleSystem.geometry.attributes.position.array;
+      targetPositions = isTargetingFlower ? flowerPositions : heartPositions;
+
+      const lerpSpeed = 0.035;
+      for (let i = 0; i < PARTICLE_COUNT * 3; i++) {
+        positions[i] += (targetPositions[i] - positions[i]) * lerpSpeed;
+      }
+      particleSystem.geometry.attributes.position.needsUpdate = true;
+
+      // System Auto-Rotation & Parallax
+      particleSystem.rotation.y += 0.004;
+      
+      // Smooth Camera Rotation according to Mouse
+      targetRotationY += (mouseX - targetRotationY) * 0.05;
+      targetRotationX += (mouseY - targetRotationX) * 0.05;
+
+      scene.rotation.y = targetRotationY;
+      scene.rotation.x = targetRotationX;
+
+      // Auto Morph Toggle every 8 seconds
+      autoMorphTimer += 0.016;
+      if (autoMorphTimer > 8) {
+        toggleMorph();
+        autoMorphTimer = 0;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // Toggle Morph Shape Function
+    function toggleMorph() {
+      isTargetingFlower = !isTargetingFlower;
+      const indicator = document.getElementById('shape-indicator');
+      if (indicator) {
+        indicator.textContent = isTargetingFlower 
+          ? "✦ Formando Flor Amarilla ✦" 
+          : "✦ Formando Corazón de Oro ✦";
+      }
+    }
+
+    // 2D Canvas Petals Overlay
+    class PetalOverlay {
+      constructor() {
+        this.canvas = document.getElementById('petals-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.petals = [];
+        this.maxPetals = 35;
+        this.resize();
+
+        window.addEventListener('resize', () => this.resize());
+        this.createPetals();
+        this.render();
+      }
+
+      resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+      }
+
+      createPetals() {
+        for (let i = 0; i < this.maxPetals; i++) {
+          this.petals.push({
+            x: Math.random() * this.canvas.width,
+            y: Math.random() * this.canvas.height - this.canvas.height,
+            size: Math.random() * 8 + 6,
+            speedY: Math.random() * 1.5 + 0.8,
+            speedX: Math.random() * 1 - 0.5,
+            angle: Math.random() * Math.PI * 2,
+            spin: (Math.random() - 0.5) * 0.03,
+            color: Math.random() > 0.3 ? '#ffd700' : '#ffb700'
+          });
+        }
+      }
+
+      render() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.petals.forEach(p => {
+          this.ctx.save();
+          this.ctx.translate(p.x, p.y);
+          this.ctx.rotate(p.angle);
+          this.ctx.fillStyle = p.color;
+          this.ctx.globalAlpha = 0.7;
+
+          // Draw Flower Petal Shape
+          this.ctx.beginPath();
+          this.ctx.moveTo(0, 0);
+          this.ctx.bezierCurveTo(-p.size, -p.size, -p.size, p.size, 0, p.size * 1.8);
+          this.ctx.bezierCurveTo(p.size, p.size, p.size, -p.size, 0, 0);
+          this.ctx.fill();
+          this.ctx.restore();
+
+          // Move Petal
+          p.y += p.speedY;
+          p.x += Math.sin(p.y * 0.01) + p.speedX;
+          p.angle += p.spin;
+
+          // Reset when falling past bottom
+          if (p.y > this.canvas.height + 20) {
+            p.y = -20;
+            p.x = Math.random() * this.canvas.width;
+          }
+        });
+
+        requestAnimationFrame(() => this.render());
+      }
+    }
+
+    // UI Event Handlers Setup
+    window.addEventListener('DOMContentLoaded', () => {
+      // Initialize ThreeJS & Petals
+      initThreeJS();
+      animate();
+      new PetalOverlay();
+
+      // UI Element References
+      const startScreen = document.getElementById('start-screen');
+      const audioBtn = document.getElementById('audio-btn');
+      const audioIcon = document.getElementById('audio-icon');
+      const morphBtn = document.getElementById('morph-btn');
+      const letterBtn = document.getElementById('letter-btn');
+      const letterOverlay = document.getElementById('letter-overlay');
+      const letterCard = document.getElementById('letter-card');
+      const closeLetter = document.getElementById('close-letter');
+      const closeLetterBottom = document.getElementById('close-letter-bottom');
+
+      // Start Screen Tap
+      startScreen.addEventListener('click', () => {
+        startScreen.classList.add('opacity-0', 'pointer-events-none');
+        audioPlayer.start();
+      });
+
+      // Audio Toggle Button
+      audioBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const playing = audioPlayer.toggle();
+        audioIcon.className = playing ? "fa-solid fa-music" : "fa-solid fa-volume-xmark";
+      });
+
+      // Manual Morph Switch Button
+      morphBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMorph();
+        autoMorphTimer = 0; // Reset auto timer
+      });
+
+      // Love Letter Open/Close Modals
+      const openLetterModal = () => {
+        letterOverlay.classList.remove('opacity-0', 'pointer-events-none');
+        letterCard.classList.remove('translate-y-8', 'scale-95');
+      };
+
+      const closeLetterModal = () => {
+        letterOverlay.classList.add('opacity-0', 'pointer-events-none');
+        letterCard.classList.add('translate-y-8', 'scale-95');
+      };
+
+      letterBtn.addEventListener('click', openLetterModal);
+      closeLetter.addEventListener('click', closeLetterModal);
+      closeLetterBottom.addEventListener('click', closeLetterModal);
+
+      letterOverlay.addEventListener('click', (e) => {
+        if (e.target === letterOverlay) closeLetterModal();
+      });
+    });
+  </script>
+</body>
+</html>
